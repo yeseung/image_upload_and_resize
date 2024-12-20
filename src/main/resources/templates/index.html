@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Upload and Resize</title>
+    <script src="https://cdn.jsdelivr.net/npm/jszip@3.7.1/dist/jszip.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+
+        h2 {
+            color: #333;
+        }
+
+        form {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+
+        input[type="file"], input[type="number"], input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        .message {
+            margin-top: 20px;
+        }
+
+        .error {
+            color: red;
+        }
+
+        .success {
+            color: green;
+        }
+
+        .image-preview {
+            margin-top: 20px;
+        }
+
+        img {
+            max-width: 100%;
+            height: auto;
+        }
+
+        .spinner {
+            display: none;
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(0, 0, 0, 0.2);
+            border-top: 4px solid #333;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        @keyframes spin {
+            from {
+                transform: rotate(0deg);
+            }
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        #overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.7);
+            z-index: 1000;
+        }
+
+        #overlay .spinner {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+
+
+<form id="uploadForm" enctype="multipart/form-data">
+    <label for="files">Choose Image:</label>
+    <input type="file" id="files" name="files" accept="image/*" multiple required>
+
+    <label for="width">Resize Width (px):</label>
+    <input type="number" id="width" name="width" min="1" value="800" required>
+
+    <label for="quality">Quality (0.0 - 1.0):</label>
+    <select id="quality" name="quality" required>
+        <option value="1.0">High (1.0)</option>
+        <option value="0.9">90% (0.9)</option>
+        <option value="0.8" selected>80% (0.8)</option>
+        <option value="0.7">70% (0.7)</option>
+        <option value="0.6">60% (0.6)</option>
+        <option value="0.5">50% (0.5)</option>
+        <option value="0.4">40% (0.4)</option>
+        <option value="0.3">30% (0.3)</option>
+        <option value="0.2">20% (0.2)</option>
+        <option value="0.1">10% (0.1)</option>
+    </select>
+
+    <p>
+    <button type="submit">Upload and Resize</button>
+
+    </p>
+</form>
+
+<div id="message" class="message"></div>
+<div id="imagePreview" class="image-preview"></div>
+<div id="download" class="download" style="padding-top: 10px"></div>
+
+<div id="overlay">
+    <div class="spinner"></div>
+</div>
+
+
+<script>
+
+
+    document.getElementById('uploadForm').addEventListener('submit', function (e) {
+        e.preventDefault();
+
+        const overlay = document.getElementById('overlay');
+        overlay.style.display = 'block';
+
+        const formData = new FormData();
+        const files = document.getElementById('files').files;
+        for (let i = 0; i < files.length; i++) {
+            formData.append('files', files[i]);  // Append each file
+        }
+        formData.append('width', document.getElementById('width').value);
+        formData.append('quality', document.getElementById('quality').value);
+
+        // Clear previous messages and previews
+        document.getElementById('message').innerHTML = '';
+        document.getElementById('imagePreview').innerHTML = '';
+
+        // Send the AJAX request to upload the images
+        fetch('/api/images/upload', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            overlay.style.display = 'none';
+
+            if (data.error) {
+                document.getElementById('message').innerHTML = `<span class="error">${data.error}</span>`;
+            } else {
+                document.getElementById('message').innerHTML = `<span class="success">${data.message}</span>`;
+                data.src.forEach(src => {
+                    const imgElement = document.createElement('img');
+                    imgElement.src = src;
+                    imgElement.width = 100;
+                    imgElement.alt = "Uploaded Image";
+                    document.getElementById('imagePreview').appendChild(imgElement);
+
+                    // const downloadLink = document.createElement('a');
+                    // downloadLink.href = src;
+                    // downloadLink.download = src.split('/').pop();
+                    // downloadLink.innerText = 'Download';
+                    // document.getElementById('download').appendChild(downloadLink);
+                    //
+                    // document.getElementById('download').appendChild(document.createElement('br'));
+                });
+
+                document.getElementById('download').appendChild(document.createElement('br'));
+
+                const zipButton = document.createElement('button');
+                zipButton.innerText = 'Download All as ZIP';
+                zipButton.onclick = function () {
+                    const zip = new JSZip();
+                    let imageCount = 0;
+
+                    data.src.forEach((src, index) => {
+                        fetch(src)
+                        .then(response => response.blob())
+                        .then(blob => {
+                            const fileName = src.split('/').pop();
+                            zip.file(fileName, blob);
+                            imageCount++;
+
+                            if (imageCount === data.src.length) {
+                                zip.generateAsync({ type: "blob" })
+                                .then(content => {
+                                    saveAs(content, "images.zip");
+                                });
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error fetching image:', error);
+                        });
+                    });
+                };
+
+                document.getElementById('download').appendChild(zipButton);
+
+            }
+        })
+        .catch(error => {
+            document.getElementById('message').innerHTML = `<span class="error">An error occurred: ${error}</span>`;
+        });
+    });
+</script>
+
+</body>
+</html>
