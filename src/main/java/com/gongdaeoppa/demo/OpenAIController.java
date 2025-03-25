@@ -12,7 +12,8 @@ public class OpenAIController {
     
     private final OpenAIService openAIService;
     
-    @GetMapping("/chat")
+    @PostMapping("/chat")
+    //@GetMapping("/chat")
     public ResponseEntity<?> chatWithAI(@RequestParam(value = "prompt", defaultValue = "Tell me a joke") String prompt) {
         
         String response = openAIService.getAIResponse(prompt);
@@ -28,7 +29,8 @@ public class OpenAIController {
         // ✅ "message" 객체 가져오기
         JsonObject message = firstChoice.getAsJsonObject("message");
         String content = message.get("content").getAsString();
-
+        
+        System.out.println(response);
         
         return ResponseEntity.ok()
                 .header("Content-Type", "application/json; charset=UTF-8")
