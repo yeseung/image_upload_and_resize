@@ -25,8 +25,13 @@ dependencies {
 
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 
+	compileOnly 'org.projectlombok:lombok'
+	annotationProcessor 'org.projectlombok:lombok'
+
 	implementation group: 'commons-fileupload', name: 'commons-fileupload', version: '1.5'
 	implementation group: 'org.imgscalr', name: 'imgscalr-lib', version: '4.2'
+
+	implementation 'com.google.code.gson:gson:2.8.9'
 
 }
 
