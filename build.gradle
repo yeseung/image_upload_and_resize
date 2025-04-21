@@ -23,6 +23,9 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
 	implementation 'org.springframework.boot:spring-boot-starter-web'
 
+	implementation 'org.mybatis.spring.boot:mybatis-spring-boot-starter:2.2.2'
+	implementation 'org.mariadb.jdbc:mariadb-java-client'
+
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 
 	compileOnly 'org.projectlombok:lombok'
@@ -32,6 +35,8 @@ dependencies {
 	implementation group: 'org.imgscalr', name: 'imgscalr-lib', version: '4.2'
 
 	implementation 'com.google.code.gson:gson:2.8.9'
+
+	implementation 'org.springframework.boot:spring-boot-starter-mail'
 
 }
 
